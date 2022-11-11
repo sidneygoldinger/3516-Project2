@@ -9,9 +9,15 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+
+void callback() {
+
+}
+
 int main (int argc, char **argv) {
     // open the input file
     char errbuf[PCAP_ERRBUF_SIZE];
+    pcap_handler callback;
 
     pcap_t *openedFile = pcap_open_offline("filename.txt", errbuf);
     if (openedFile == NULL) {
@@ -33,10 +39,5 @@ int main (int argc, char **argv) {
     pcap_close(openedFile);
 
     return 0;
-}
-
-
-void callback() {
-
 }
 
