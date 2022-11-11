@@ -3,5 +3,11 @@
 //
 
 int main () {
+    // open the input file
+
+    // loop through the input file
+
+    // close the input file
+
     return 0;
 }
