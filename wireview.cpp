@@ -15,7 +15,15 @@ int main (int argc, char **argv) {
 
     pcap_t *openedFile = pcap_open_offline("filename.txt", errbuf);
     if (openedFile == NULL) {
-        printf("the file wasn't opened: %s\n", errbuf);
+        printf("The file wasn't opened: %s\n", errbuf);
+        return 1;
+    }
+
+    // check data was captured using ethernet?
+    int wasItEthernet = pcap_datalink(openedFile);
+    if (wasItEthernet != 1) {
+        printf("The file wasn't ethernet? Returned: %d\n", wasItEthernet);
+        return 1;
     }
 
     // loop through the input file
