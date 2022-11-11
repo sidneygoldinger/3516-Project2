@@ -10,7 +10,7 @@
 #include <arpa/inet.h>
 
 
-void callback() {
+void callback(uchar *thing1, const struct pcap_pkthdr *thing2, const u_char *thing3) {
 
 }
 
