@@ -11,6 +11,10 @@
 
 int main (int argc, char **argv) {
     // open the input file
+    char errbuf[PCAP_ERRBUF_SIZE];
+    const char *fname = 'filename.txt'; // input file name
+
+    pcap_t *pcap_open_offline(*fname, *errbuf);
 
     // loop through the input file
 
