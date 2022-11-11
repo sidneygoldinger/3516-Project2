@@ -15,7 +15,7 @@ int main (int argc, char **argv) {
 
     pcap_t *openedFile = pcap_open_offline("filename.txt", errbuf);
     if (openedFile == NULL) {
-        cout << "the file wasn't opened: " << errbuf << "\n";
+        printf("the file wasn't opened: %s\n", errbuf);
     }
 
     // loop through the input file
