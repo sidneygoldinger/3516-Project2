@@ -10,14 +10,15 @@
 #include <arpa/inet.h>
 
 
+
 void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *thing3) {
 
 }
 
+
 int main (int argc, char **argv) {
     // open the input file
     char errbuf[PCAP_ERRBUF_SIZE];
-    pcap_handler callback;
 
     pcap_t *openedFile = pcap_open_offline("project2-arp-storm.pcap", errbuf);
     if (openedFile == NULL) {
@@ -36,7 +37,7 @@ int main (int argc, char **argv) {
     }
 
     // loop through the input file
-    pcap_loop(openedFile,-1,callback,NULL);
+    pcap_loop(openedFile,1,callback,NULL); // change second input to -1
 
     // close the input file
     pcap_close(openedFile);
