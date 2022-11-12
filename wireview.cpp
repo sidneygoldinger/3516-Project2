@@ -36,7 +36,7 @@ int main (int argc, char **argv) {
     }
 
     // loop through the input file
-    //pcap_loop(openedFile,-1,callback,NULL);
+    pcap_loop(openedFile,-1,callback,NULL);
 
     // close the input file
     pcap_close(openedFile);
