@@ -29,7 +29,9 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
 
     // do unique recipients things
 
-    // do machines list things
+    // do unique machines list things
+    //      and include associated MAC addresses
+    //      and IP addr's if possible(?)
 
     // do unique source ports things
 
