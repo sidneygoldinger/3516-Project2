@@ -31,9 +31,12 @@ int main (int argc, char **argv) {
         printf("The file wasn't ethernet? Returned: %d\n", wasItEthernet);
         return 1;
     }
+    else {
+        printf("The file was ethernet! Yay!\n");
+    }
 
     // loop through the input file
-    pcap_loop(openedFile,-1,callback,NULL);
+    //pcap_loop(openedFile,-1,callback,NULL);
 
     // close the input file
     pcap_close(openedFile);
