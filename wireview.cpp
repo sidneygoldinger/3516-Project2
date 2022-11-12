@@ -10,7 +10,7 @@
 #include <arpa/inet.h>
 
 
-void callback(uchar *thing1, const struct pcap_pkthdr *thing2, const u_char *thing3) {
+void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *thing3) {
 
 }
 
@@ -19,7 +19,7 @@ int main (int argc, char **argv) {
     char errbuf[PCAP_ERRBUF_SIZE];
     pcap_handler callback;
 
-    pcap_t *openedFile = pcap_open_offline("filename.txt", errbuf);
+    pcap_t *openedFile = pcap_open_offline("project2-arp-storm.pcap", errbuf);
     if (openedFile == NULL) {
         printf("The file wasn't opened: %s\n", errbuf);
         return 1;
