@@ -1,6 +1,7 @@
 //
 // Created by Sidney Goldinger on 11/11/22.
 //
+/////// Imports ///////
 #include <stdio.h>
 #include <stdlib.h>
 #include <pcap.h>  /* GIMME a libpcap plz! */
@@ -9,12 +10,34 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+/////// Global variables ///////
+int totalNumberPackets = 0;
 
 
 void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *thing3) {
+    // print start date and time
+
+    // print duration of packet capture
+
+    // count packets (and set a global to this)
     static int count = 1;
-    printf("in callback, rejoice: %d\n", count);
+    //printf("in callback, rejoice: %d\n", count);
+    totalNumberPackets = count;
     count++;
+
+    // do unique senders things
+
+    // do unique recipients things
+
+    // do machines list things
+
+    // do unique source ports things
+
+    // do unique destination ports things
+
+    // get packet size
+    // record min so far and max so far, and sum for
+    //      ultimate average
 }
 
 
@@ -43,6 +66,9 @@ int main (int argc, char **argv) {
 
     // close the input file
     pcap_close(openedFile);
+
+    // print total number of packets:
+    printf("TOTAL PACKETS IS %d\n", totalNumberPackets);
 
     return 0;
 }
