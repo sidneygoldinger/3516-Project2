@@ -9,10 +9,17 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
-
+#include <net/ethernet.h>
 /////// Global variables ///////
 int totalNumberPackets = 0;
 
+// /* 10Mb/s ethernet header */
+// struct ether_header
+// {
+//   u_int8_t  ether_dhost[ETH_ALEN];	/* destination eth addr	*/
+//   u_int8_t  ether_shost[ETH_ALEN];	/* source ether addr	*/
+//   u_int16_t ether_type;		        /* packet type ID field	*/
+// }
 
 void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *thing3) {
     // print start date and time
@@ -24,6 +31,18 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     //printf("in callback, rejoice: %d\n", count);
     totalNumberPackets = count;
     count++;
+    printf("size of packet in bytes: %d\n", thing2->len);
+    struct ether_header* e_header = ((struct ether_header*) thing3);
+    //ether_type value meanings  
+    //https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
+    printf("IP or ARP: %d\n", ntohs(e_header->ether_type));
+    
+    u_int8_t hostDestinationAddr[ETH_ALEN];
+    for(int i = 0; i < ETH_ALEN; i ++) {
+        hostDestinationAddr[i] = ntohs(e_header->ether_dhost[i]);
+        printf("%d ", ntohs(e_header->ether_dhost[i]));
+    }
+    printf("destination ethernet address: %s\n", (char*)hostDestinationAddr);
 
     // do unique senders things
 
