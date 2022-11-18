@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <netinet/ether.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>
 /////// Global variables ///////
@@ -37,12 +38,14 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     //https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
     printf("IP or ARP: %d\n", ntohs(e_header->ether_type));
     
-    u_int8_t hostDestinationAddr[ETH_ALEN];
-    for(int i = 0; i < ETH_ALEN; i ++) {
-        hostDestinationAddr[i] = ntohs(e_header->ether_dhost[i]);
-        printf("%d ", ntohs(e_header->ether_dhost[i]));
-    }
-    printf("destination ethernet address: %s\n", (char*)hostDestinationAddr);
+    //u_int8_t hostDestinationAddr[ETH_ALEN];
+    printf("ethernet header source: %s", ether_ntoa((const struct ether_addr *)&e_header->ether_shost));
+    printf(" destination: %s ", ether_ntoa((const struct ether_addr *)&e_header->ether_dhost));
+    // for(int i = 0; i < ETH_ALEN; i ++) {
+    //     hostDestinationAddr[i] = ntohs(e_header->ether_dhost[i]);
+    //     printf("%d ", ntohs(e_header->ether_dhost[i]));
+    // }
+    // printf("destination ethernet address: %s\n", (char*)hostDestinationAddr);
 
     // do unique senders things
 
