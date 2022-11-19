@@ -44,10 +44,11 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     printf(" destination: %s \n", ether_ntoa((const struct ether_addr *)&e_header->ether_dhost));
 
 
-    thing3 = thing3 + sizeof(e_header);
+    thing3 = thing3 + sizeof(*e_header);
+    printf("%ld\n", sizeof(*e_header));
     struct ip* ip_header = ((struct ip*) thing3);
-    printf("ip header source: %s\n", inet_ntoa(ip_header->ip_src));
-    printf("ip header destination: %s\n", inet_ntoa(ip_header->ip_dst));
+    printf("ip header source: %s\n", inet_ntoa((struct in_addr)ip_header->ip_src));
+    printf("ip header destination: %s\n", inet_ntoa((struct in_addr)ip_header->ip_dst));
 
     thing3 = thing3 + sizeof(ip_header);
     // for(int i = 0; i < ETH_ALEN; i ++) {
