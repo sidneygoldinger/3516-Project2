@@ -11,6 +11,7 @@
 #include <netinet/ether.h>
 #include <arpa/inet.h>
 #include <net/ethernet.h>
+#include <netinet/ip.h>
 /////// Global variables ///////
 int totalNumberPackets = 0;
 
@@ -39,8 +40,16 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     printf("IP or ARP: %d\n", ntohs(e_header->ether_type));
     
     //u_int8_t hostDestinationAddr[ETH_ALEN];
-    printf("ethernet header source: %s", ether_ntoa((const struct ether_addr *)&e_header->ether_shost));
-    printf(" destination: %s ", ether_ntoa((const struct ether_addr *)&e_header->ether_dhost));
+    printf("ethernet header source: %s\n", ether_ntoa((const struct ether_addr *)&e_header->ether_shost));
+    printf(" destination: %s \n", ether_ntoa((const struct ether_addr *)&e_header->ether_dhost));
+
+
+    thing3 = thing3 + sizeof(e_header);
+    struct ip* ip_header = ((struct ip*) thing3);
+    printf("ip header source: %s\n", inet_ntoa(ip_header->ip_src));
+    printf("ip header destination: %s\n", inet_ntoa(ip_header->ip_dst));
+
+    thing3 = thing3 + sizeof(ip_header);
     // for(int i = 0; i < ETH_ALEN; i ++) {
     //     hostDestinationAddr[i] = ntohs(e_header->ether_dhost[i]);
     //     printf("%d ", ntohs(e_header->ether_dhost[i]));
@@ -69,7 +78,7 @@ int main (int argc, char **argv) {
     // open the input file
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    pcap_t *openedFile = pcap_open_offline("project2-arp-storm.pcap", errbuf);
+    pcap_t *openedFile = pcap_open_offline("project2-dns.pcap", errbuf);
     if (openedFile == NULL) {
         printf("The file wasn't opened: %s\n", errbuf);
         return 1;
