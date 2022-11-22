@@ -8,14 +8,22 @@
 #include <errno.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
-#include <netinet/ether.h>
+
+//#include <netinet/ether.h> // for linux
+#include <netinet/if_ether.h> // for mac
+
 #include <arpa/inet.h>
 #include <net/ethernet.h>
 #include <netinet/ip.h>
 #include <netinet/udp.h>
 #include <string.h>
+#include <string>
 #include <unordered_set>
 //#include <netinet/arp.h>
+#include <iostream>
+using namespace std;
+
+
 /////// Global variables ///////
 int totalNumberPackets = 0;
 std::unordered_set <char*> sendingPorts;
@@ -31,8 +39,126 @@ std::unordered_set <std::string> arpAddresses; //MAC or IP
 //   u_int16_t ether_type;		        /* packet type ID field	*/
 // }
 
+
+void dateAndTime(const struct pcap_pkthdr *thing2) {
+    long int seconds = thing2->ts.tv_sec;
+    printf("seconds: %ld\n", seconds);
+
+    // Save the time in Human
+    // readable format
+    string ans = "";
+
+    // Number of days in month
+    // in normal year
+    int daysOfMonth[] = { 31, 28, 31, 30, 31, 30,
+                          31, 31, 30, 31, 30, 31 };
+
+    long int currYear, daysTillNow, extraTime, extraDays,
+            index, date, month, hours, minutes, secondss,
+            flag = 0;
+
+    // Calculate total days unix time T
+    daysTillNow = seconds / (24 * 60 * 60);
+    extraTime = seconds % (24 * 60 * 60);
+    currYear = 1970;
+
+    // Calculating current year
+    while (true) {
+        if (currYear % 400 == 0
+            || (currYear % 4 == 0 && currYear % 100 != 0)) {
+            if (daysTillNow < 366) {
+                break;
+            }
+            daysTillNow -= 366;
+        }
+        else {
+            if (daysTillNow < 365) {
+                break;
+            }
+            daysTillNow -= 365;
+        }
+        currYear += 1;
+    }
+    // Updating extradays because it
+    // will give days till previous day
+    // and we have include current day
+    extraDays = daysTillNow + 1;
+
+    if (currYear % 400 == 0
+        || (currYear % 4 == 0 && currYear % 100 != 0))
+        flag = 1;
+
+    // Calculating MONTH and DATE
+    month = 0, index = 0;
+    if (flag == 1) {
+        while (true) {
+
+            if (index == 1) {
+                if (extraDays - 29 < 0)
+                    break;
+                month += 1;
+                extraDays -= 29;
+            }
+            else {
+                if (extraDays - daysOfMonth[index] < 0) {
+                    break;
+                }
+                month += 1;
+                extraDays -= daysOfMonth[index];
+            }
+            index += 1;
+        }
+    }
+    else {
+        while (true) {
+
+            if (extraDays - daysOfMonth[index] < 0) {
+                break;
+            }
+            month += 1;
+            extraDays -= daysOfMonth[index];
+            index += 1;
+        }
+    }
+
+    // Current Month
+    if (extraDays > 0) {
+        month += 1;
+        date = extraDays;
+    }
+    else {
+        if (month == 2 && flag == 1)
+            date = 29;
+        else {
+            date = daysOfMonth[month - 1];
+        }
+    }
+
+    // Calculating HH:MM:YYYY
+    hours = extraTime / 3600;
+    minutes = (extraTime % 3600) / 60;
+    secondss = (extraTime % 3600) % 60;
+
+    ans += std::to_string(date);
+    ans += "/";
+    ans += std::to_string(month);
+    ans += "/";
+    ans += std::to_string(currYear);
+    ans += " ";
+    ans += std::to_string(hours);
+    ans += ":";
+    ans += std::to_string(minutes);
+    ans += ":";
+    ans += std::to_string(secondss);
+
+    // Return the time
+    printf("Date and time: ");
+    cout << ans << "\n";
+}
+
 void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *thing3) {
     // print start date and time
+    dateAndTime(thing2);
 
     // print duration of packet capture
 
@@ -46,16 +172,16 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     printf("\n");
     printf("size of packet in bytes: %d\n", thing2->len);
     struct ether_header* e_header = ((struct ether_header*) thing3);
-    //ether_type value meanings  
+    //ether_type value meanings
     //https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
     //2048 -> IPv4
     //2054 -> ARP
     u_int16_t e_type = ntohs(e_header->ether_type);
     printf("IP or ARP: %d\n", e_type);
-    
+
     //add these to two separate maps ex. ethernetSenders and ethernetRecipients
-        //the maps will map hex-colon addresses to counts(# of times that the address has sent/received)
-        //if the ethernet address was already in the map, add to its count
+    //the maps will map hex-colon addresses to counts(# of times that the address has sent/received)
+    //if the ethernet address was already in the map, add to its count
     printf("ethernet header source: %s\n", ether_ntoa((const struct ether_addr *)&e_header->ether_shost));
     printf("ethernet header destination: %s \n", ether_ntoa((const struct ether_addr *)&e_header->ether_dhost));
 
@@ -64,11 +190,11 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     printf("%ld\n", sizeof(*e_header));
 
     //     struct ip {
-    // #if BYTE_ORDER == LITTLE_ENDIAN 
+    // #if BYTE_ORDER == LITTLE_ENDIAN
     //     u_char  ip_hl:4,        /* header length */
     //         ip_v:4;         /* version */
     // #endif
-    // #if BYTE_ORDER == BIG_ENDIAN 
+    // #if BYTE_ORDER == BIG_ENDIAN
     //     u_char  ip_v:4,         /* version */
     //         ip_hl:4;        /* header length */
     // #endif
@@ -149,20 +275,20 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
         if(protocolType == 2048) {
             //print out IP address stuff
             struct ether_arp* arp_body = ((struct ether_arp*) thing3);
-            
+
             //add these to same hashset (only keep track of unique senders and targets/"machines participating in ARP")
             printf("Sender IP address: %d.%d.%d.%d\n", arp_body->arp_spa[0], arp_body->arp_spa[1], arp_body->arp_spa[2], arp_body->arp_spa[3]);
             printf("Target IP address: %d.%d.%d.%d\n", arp_body->arp_tpa[0], arp_body->arp_tpa[1], arp_body->arp_tpa[2], arp_body->arp_tpa[3]);
             std::string senderIP = std::to_string(arp_body->arp_spa[0]) + "." + std::to_string(arp_body->arp_spa[1]) + "." +
-                                    std::to_string(arp_body->arp_spa[2]) + "." + std::to_string(arp_body->arp_spa[3]);
+                                   std::to_string(arp_body->arp_spa[2]) + "." + std::to_string(arp_body->arp_spa[3]);
             std::string targetIP = std::to_string(arp_body->arp_tpa[0]) + "." + std::to_string(arp_body->arp_tpa[1]) + "." +
-                                    std::to_string(arp_body->arp_tpa[2]) + "." + std::to_string(arp_body->arp_tpa[3]);
-            
+                                   std::to_string(arp_body->arp_tpa[2]) + "." + std::to_string(arp_body->arp_tpa[3]);
+
             arpAddresses.insert(senderIP);
             arpAddresses.insert(targetIP);
         }
 
-        
+
         struct ether_arp* arp_body = ((struct ether_arp*) thing3);
         //add these to the same hashset (only keep track of unique senders and targets/"machines participating in ARP")
         printf("Sender MAC address: %s\n", ether_ntoa((const struct ether_addr *)&arp_body->arp_sha));
@@ -171,19 +297,19 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
         std::string targetMAC(ether_ntoa((const struct ether_addr *)&arp_body->arp_tha));
         arpAddresses.insert(senderMAC);
         arpAddresses.insert(targetMAC);
-    //ip or mac participating in ARP -> number of times it has been seen
+        //ip or mac participating in ARP -> number of times it has been seen
         //ip1 -> 2
         //ip2 -> 2
         //mac1 -> 2
         //mac2 -> 2
         //mac3 -> 3
 
-    //OR
+        //OR
 
-    //just a list of unique senders (no mapping, more like a hashset) I'm thinking this one (currently implemented)
+        //just a list of unique senders (no mapping, more like a hashset) I'm thinking this one (currently implemented)
     }
 
-    
+
 
 
     // for(int i = 0; i < ETH_ALEN; i ++) {
@@ -242,9 +368,17 @@ int main (int argc, char **argv) {
     // close the input file
     pcap_close(openedFile);
 
+    // FINAL PRINTING
     // print total number of packets:
     printf("TOTAL PACKETS IS %d\n", totalNumberPackets);
 
+    // print unique senders and recipients things
+
+    // print ARP things
+
+    // print UDP things
+
+    // ave, min, max packet sizes
+
     return 0;
 }
-
