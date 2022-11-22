@@ -26,9 +26,12 @@ using namespace std;
 
 /////// Global variables ///////
 int totalNumberPackets = 0;
+int smallestPacketSize = INFINITY;
+int biggestPacketSize = 0;
+int sumOfPacketSizes = 0;
+
 std::unordered_set <char*> sendingPorts;
 std::unordered_set <char*> receivingPorts;
-
 std::unordered_set <std::string> arpAddresses; //MAC or IP
 
 // /* 10Mb/s ethernet header */
@@ -39,10 +42,13 @@ std::unordered_set <std::string> arpAddresses; //MAC or IP
 //   u_int16_t ether_type;		        /* packet type ID field	*/
 // }
 
-
+/**
+ * Prints out the starting date and time of the packet
+ * @param thing2 timeval of the packet starting time
+ */
 void dateAndTime(const struct pcap_pkthdr *thing2) {
     long int seconds = thing2->ts.tv_sec;
-    printf("seconds: %ld\n", seconds);
+    //printf("seconds: %ld\n", seconds);
 
     // Save the time in Human
     // readable format
@@ -156,6 +162,26 @@ void dateAndTime(const struct pcap_pkthdr *thing2) {
     cout << ans << "\n";
 }
 
+/**
+ * Does stats things so that ave, min, and max can be printed at end.
+ * @param packetSize the size of the packet to be included in the stats
+ */
+void packetSizeThings(int packetSize) {
+    // smallest size
+    if (packetSize < smallestPacketSize) {
+        smallestPacketSize = packetSize;
+    }
+
+    // biggestsize
+    if (packetSize > biggestPacketSize) {
+        biggestPacketSize = packetSize;
+    }
+
+    // increase the sum
+    sumOfPacketSizes += packetSize;
+}
+
+
 void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *thing3) {
     // print start date and time
     dateAndTime(thing2);
@@ -164,13 +190,15 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
 
     // count packets (and set a global to this)
     static int count = 1;
-    //printf("in callback, rejoice: %d\n", count);
     totalNumberPackets = count;
     count++;
-    printf("packet number: %d\n", totalNumberPackets);
-    printf("\n");
-    printf("\n");
+
+    // go do packet size stats things
     printf("size of packet in bytes: %d\n", thing2->len);
+    packetSizeThings(thing2->len);
+
+
+    // other things?
     struct ether_header* e_header = ((struct ether_header*) thing3);
     //ether_type value meanings
     //https://www.iana.org/assignments/ieee-802-numbers/ieee-802-numbers.xhtml
@@ -379,6 +407,9 @@ int main (int argc, char **argv) {
     // print UDP things
 
     // ave, min, max packet sizes
-
+    printf("Smallest packet size: %d\n", smallestPacketSize);
+    printf("Biggest packet size: %d\n", biggestPacketSize);
+    double averagePacketSize = (double) sumOfPacketSizes/(double) totalNumberPackets;
+    printf("Average packet size: %f\n", averagePacketSize);
     return 0;
 }
