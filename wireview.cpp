@@ -347,7 +347,7 @@ int main (int argc, char **argv) {
     // open the input file
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    pcap_t *openedFile = pcap_open_offline("project2-http.pcap", errbuf);
+    pcap_t *openedFile = pcap_open_offline("project2-other-network.pcap", errbuf);
     if (openedFile == NULL) {
         printf("The file wasn't opened: %s\n", errbuf);
         return 1;
@@ -369,11 +369,10 @@ int main (int argc, char **argv) {
 
 
     printf("\nEthernet headers:\n");
-    printf("MACs: \n");
-    printf("    Sending MACs: \n");
+    printf("    Sending: \n");
     print_map_count(sendingMACs);
 
-    printf("    Receving MACs: \n");
+    printf("    Receving: \n");
     print_map_count(receivingMACs);
 
     printf("\nIP headers:\n");
