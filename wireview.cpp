@@ -9,8 +9,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include <netinet/ether.h> // for linux
-//#include <netinet/if_ether.h> // for mac
+//#include <netinet/ether.h> // for linux
+#include <netinet/if_ether.h> // for mac
 
 #include <arpa/inet.h>
 #include <net/ethernet.h>
@@ -246,13 +246,7 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     thing3 = thing3 + sizeof(*e_header);
 
     struct ip* ip_header = ((struct ip*) thing3);
-    if(e_type == 2048) {
-        //printf("packet is IP\n");
-        //add these to two separate maps ex. ipSenders and ipRecipients
-        //the maps will map ip addresses to counts(# of times that the address has sent/received)
-        //if the ip address was already in the map, add to its count
-        //printf("IP header source: %s\n", inet_ntoa((struct in_addr)ip_header->ip_src));
-        //printf("IP header destination: %s\n", inet_ntoa((struct in_addr)ip_header->ip_dst));
+    if(e_type == 2048) { // IPv4
         if(!sendingIPs.count(inet_ntoa((struct in_addr)ip_header->ip_src)) > 0) {
         sendingIPs.insert(std::pair<std::string, int>(inet_ntoa((struct in_addr)ip_header->ip_src), 1));
         } else {
@@ -266,9 +260,7 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
         }
         u_char upperProtocolNum = ip_header->ip_p;
 
-
-
-        if(upperProtocolNum == 17) {
+        if(upperProtocolNum == 17) { // there is UDP
             thing3 = thing3 + sizeof(*ip_header);
             struct udphdr* udp_header = ((struct udphdr*) thing3);
             //add these to two separate maps ex. sendingPorts and receivingPorts
@@ -288,12 +280,12 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
                 receivingPorts.find(ntohs(udp_header->uh_dport))->second++;
             }
         } else {
-            printf("No UDP being carried!\n");
+            //printf("No UDP being carried!\n");
         }
-    } else if(e_type == 2054) {
+    } else if(e_type == 2054) { // ARP
         struct arphdr* arp_header = ((struct arphdr*) thing3);
         uint16_t protocolType = ntohs(arp_header->ar_pro);
-        printf("Protocol type: %d\n", protocolType);
+        //printf("Protocol type: %d\n", protocolType);
 
 
         struct ether_arp* arp_body = ((struct ether_arp*) thing3);
@@ -338,10 +330,16 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
 
 //https://www.techiedelight.com/print-keys-values-map-cpp/
 template<typename K, typename V>
-void print_map(std::unordered_map<K, V> const &m)
-{
+void print_map_count(std::unordered_map<K, V> const &m) {
     for (auto const &pair: m) {
         std::cout << "    {" << pair.first << " with count " << pair.second << "}\n";
+    }
+}
+
+template<typename K, typename V>
+void print_map_IP(std::unordered_map<K, V> const &m) {
+    for (auto const &pair: m) {
+        std::cout << "    {" << pair.first << " with IP " << pair.second << "}\n";
     }
 }
 
@@ -373,28 +371,28 @@ int main (int argc, char **argv) {
     printf("\nEthernet headers:\n");
     printf("\nMACs: \n");
     printf("    Sending MACs: \n");
-    print_map(sendingMACs);
+    print_map_count(sendingMACs);
 
     printf("    Receving MACs: \n");
-    print_map(receivingMACs);
+    print_map_count(receivingMACs);
 
     printf("\nIP headers:\n");
     printf("    Sending IPs: \n");
-    print_map(sendingIPs);
+    print_map_count(sendingIPs);
 
     printf("    Receiving IPs: \n");
-    print_map(receivingIPs);
+    print_map_count(receivingIPs);
 
     printf("    Sending Ports: \n");
-    print_map(sendingPorts);
+    print_map_count(sendingPorts);
 
     printf("    Receiving Ports: \n");
-    print_map(receivingPorts);
+    print_map_count(receivingPorts);
 
 
 
     printf("\nARP headers:\n");
-    print_map(arpAddresses);
+    print_map_IP(arpAddresses);
 
     // close the input file
     pcap_close(openedFile);
@@ -414,12 +412,6 @@ int main (int argc, char **argv) {
 
     // print total number of packets:
     printf("There are %d total packets\n", totalNumberPackets);
-
-    // print unique senders and recipients things
-
-    // print ARP things
-
-    // print UDP things
 
     // ave, min, max packet sizes
     printf("Smallest packet size: %d\n", smallestPacketSize);
