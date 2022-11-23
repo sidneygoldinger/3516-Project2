@@ -32,6 +32,11 @@ int smallestPacketSize = (int)INFINITY;
 int biggestPacketSize = 0;
 int sumOfPacketSizes = 0;
 
+int startingSec = 0;
+int startingUsec = 0;
+int endingSec = 0;
+int endingUsec = 0;
+
 std::unordered_map<int, int> sendingPorts;
 std::unordered_map<int, int> receivingPorts;
 std::unordered_set <std::string> arpAddresses; //MAC or IP
@@ -185,18 +190,25 @@ void packetSizeThings(int packetSize) {
 
 
 void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *thing3) {
-    // print start date and time
-    dateAndTime(thing2);
-
-    // print duration of packet capture
-
     // count packets (and set a global to this)
     static int count = 1;
     totalNumberPackets = count;
+
+    // do date and time starting
+    if (count == 1) {
+        dateAndTime(thing2);
+        startingSec = thing2->ts.tv_sec;
+        startingUsec = thing2->ts.tv_usec;
+    }
+    // record all possible ending times
+    endingSec = thing2->ts.tv_sec;
+    endingUsec = thing2->ts.tv_usec;
+
+
     count++;
 
     // go do packet size stats things
-    printf("size of packet in bytes: %d\n", thing2->len);
+    //printf("size of packet in bytes: %d\n", thing2->len);
     packetSizeThings(thing2->len);
 
 
@@ -207,17 +219,17 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     //2048 -> IPv4
     //2054 -> ARP
     u_int16_t e_type = ntohs(e_header->ether_type);
-    printf("IP or ARP: %d\n", e_type);
+    //printf("IP or ARP: %d\n", e_type);
 
     //add these to two separate maps ex. ethernetSenders and ethernetRecipients
     //the maps will map hex-colon addresses to counts(# of times that the address has sent/received)
     //if the ethernet address was already in the map, add to its count
-    printf("ethernet header source: %s\n", ether_ntoa((const struct ether_addr *)&e_header->ether_shost));
-    printf("ethernet header destination: %s \n", ether_ntoa((const struct ether_addr *)&e_header->ether_dhost));
+    //printf("ethernet header source: %s\n", ether_ntoa((const struct ether_addr *)&e_header->ether_shost));
+    //printf("ethernet header destination: %s \n", ether_ntoa((const struct ether_addr *)&e_header->ether_dhost));
 
 
     thing3 = thing3 + sizeof(*e_header);
-    printf("%ld\n", sizeof(*e_header));
+    //printf("%ld\n", sizeof(*e_header));
 
     //     struct ip {
     // #if BYTE_ORDER == LITTLE_ENDIAN
@@ -242,14 +254,14 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
 
     struct ip* ip_header = ((struct ip*) thing3);
     if(e_type == 2048) {
-        printf("packet is IP\n");
+        //printf("packet is IP\n");
         //add these to two separate maps ex. ipSenders and ipRecipients
         //the maps will map ip addresses to counts(# of times that the address has sent/received)
         //if the ip address was already in the map, add to its count
-        printf("IP header source: %s\n", inet_ntoa((struct in_addr)ip_header->ip_src));
-        printf("IP header destination: %s\n", inet_ntoa((struct in_addr)ip_header->ip_dst));
+        //printf("IP header source: %s\n", inet_ntoa((struct in_addr)ip_header->ip_src));
+        //printf("IP header destination: %s\n", inet_ntoa((struct in_addr)ip_header->ip_dst));
         u_char upperProtocolNum = ip_header->ip_p;
-        printf("UDP or not (should be 17 for UDP): %d\n", upperProtocolNum);
+        //printf("UDP or not (should be 17 for UDP): %d\n", upperProtocolNum);
 
         //only check for UDP if there is an IP header?????????
 
@@ -267,8 +279,8 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
             //add these to two separate maps ex. sendingPorts and receivingPorts
             //the maps will map port numbers to counts(# of times that the port has sent/received)
             //if the port was already in the map, add to its count
-            printf("UDP header source port: %d\n", ntohs(udp_header->uh_sport));
-            printf("UDP header destination port: %d\n", ntohs(udp_header->uh_dport));
+            //printf("UDP header source port: %d\n", ntohs(udp_header->uh_sport));
+            //printf("UDP header destination port: %d\n", ntohs(udp_header->uh_dport));
             if(!sendingPorts.count(ntohs(udp_header->uh_sport)) > 0) {
                 sendingPorts.insert(std::pair<int, int>(ntohs(udp_header->uh_sport), 1));
             } else {
@@ -286,7 +298,7 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     } else if(e_type == 2054) {
         //arp packets never have UDP or TCP?????????
         //Might make sense because TCP and UDP are for inter-network stuffs and ARP only operates on data link layer
-        printf("packet is ARP\n");
+        //printf("packet is ARP\n");
         //arphdr fields
         // uint16_t ar_hrd;	Format of hardware address
         // uint16_t ar_pro;	Format of protocol address
@@ -318,8 +330,8 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
             struct ether_arp* arp_body = ((struct ether_arp*) thing3);
 
             //add these to same hashset (only keep track of unique senders and targets/"machines participating in ARP")
-            printf("Sender IP address: %d.%d.%d.%d\n", arp_body->arp_spa[0], arp_body->arp_spa[1], arp_body->arp_spa[2], arp_body->arp_spa[3]);
-            printf("Target IP address: %d.%d.%d.%d\n", arp_body->arp_tpa[0], arp_body->arp_tpa[1], arp_body->arp_tpa[2], arp_body->arp_tpa[3]);
+            //printf("Sender IP address: %d.%d.%d.%d\n", arp_body->arp_spa[0], arp_body->arp_spa[1], arp_body->arp_spa[2], arp_body->arp_spa[3]);
+            //printf("Target IP address: %d.%d.%d.%d\n", arp_body->arp_tpa[0], arp_body->arp_tpa[1], arp_body->arp_tpa[2], arp_body->arp_tpa[3]);
             std::string senderIP = std::to_string(arp_body->arp_spa[0]) + "." + std::to_string(arp_body->arp_spa[1]) + "." +
                                    std::to_string(arp_body->arp_spa[2]) + "." + std::to_string(arp_body->arp_spa[3]);
             std::string targetIP = std::to_string(arp_body->arp_tpa[0]) + "." + std::to_string(arp_body->arp_tpa[1]) + "." +
@@ -332,32 +344,13 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
 
         struct ether_arp* arp_body = ((struct ether_arp*) thing3);
         //add these to the same hashset (only keep track of unique senders and targets/"machines participating in ARP")
-        printf("Sender MAC address: %s\n", ether_ntoa((const struct ether_addr *)&arp_body->arp_sha));
-        printf("Target MAC address: %s\n", ether_ntoa((const struct ether_addr *)&arp_body->arp_tha));
+        //printf("Sender MAC address: %s\n", ether_ntoa((const struct ether_addr *)&arp_body->arp_sha));
+        //printf("Target MAC address: %s\n", ether_ntoa((const struct ether_addr *)&arp_body->arp_tha));
         std::string senderMAC(ether_ntoa((const struct ether_addr *)&arp_body->arp_sha));
         std::string targetMAC(ether_ntoa((const struct ether_addr *)&arp_body->arp_tha));
         arpAddresses.insert(senderMAC);
         arpAddresses.insert(targetMAC);
-        //ip or mac participating in ARP -> number of times it has been seen
-        //ip1 -> 2
-        //ip2 -> 2
-        //mac1 -> 2
-        //mac2 -> 2
-        //mac3 -> 3
-
-        //OR
-
-        //just a list of unique senders (no mapping, more like a hashset) I'm thinking this one (currently implemented)
     }
-
-
-
-
-    // for(int i = 0; i < ETH_ALEN; i ++) {
-    //     hostDestinationAddr[i] = ntohs(e_header->ether_dhost[i]);
-    //     printf("%d ", ntohs(e_header->ether_dhost[i]));
-    // }
-    // printf("destination ethernet address: %s\n", (char*)hostDestinationAddr);
 
     // do unique senders things
 
@@ -392,11 +385,11 @@ int main (int argc, char **argv) {
     // check data was captured using ethernet?
     int wasItEthernet = pcap_datalink(openedFile);
     if (wasItEthernet != 1) {
-        printf("The file wasn't ethernet? Returned: %d\n", wasItEthernet);
+        //printf("The file wasn't ethernet? Returned: %d\n", wasItEthernet);
         return 1;
     }
     else {
-        printf("The file was ethernet! Yay!\n");
+        //printf("The file was ethernet! Yay!\n");
     }
 
     // loop through the input file
@@ -404,14 +397,26 @@ int main (int argc, char **argv) {
     pcap_loop(openedFile,-1,callback,NULL); // change second input to -1
 
     for(std::string s : arpAddresses) {
-        printf("%s\n", s.c_str());
+        //printf("%s\n", s.c_str());
     }
     // close the input file
     pcap_close(openedFile);
 
     // FINAL PRINTING
+
+    // print total time
+    int totalSec = endingSec - startingSec;
+    int totalUsec = endingUsec - startingUsec;
+
+    if (totalUsec < 0) {
+        totalSec = totalSec - 1;
+        totalUsec = totalUsec + 1000000;
+    }
+
+    printf("This took %d seconds and %d microseconds\n", totalSec, totalUsec);
+
     // print total number of packets:
-    printf("TOTAL PACKETS IS %d\n", totalNumberPackets);
+    printf("There are %d total packets\n", totalNumberPackets);
 
     // print unique senders and recipients things
 
