@@ -341,7 +341,7 @@ template<typename K, typename V>
 void print_map(std::unordered_map<K, V> const &m)
 {
     for (auto const &pair: m) {
-        std::cout << "{" << pair.first << " with count " << pair.second << "}\n";
+        std::cout << "    {" << pair.first << " with count " << pair.second << "}\n";
     }
 }
 
