@@ -9,8 +9,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-//#include <netinet/ether.h> // for linux
-#include <netinet/if_ether.h> // for mac
+#include <netinet/ether.h> // for linux
+//#include <netinet/if_ether.h> // for mac
 
 #include <arpa/inet.h>
 #include <net/ethernet.h>
@@ -19,6 +19,8 @@
 #include <string.h>
 #include <string>
 #include <unordered_set>
+#include <unordered_map>
+#include <math.h>
 //#include <netinet/arp.h>
 #include <iostream>
 using namespace std;
@@ -26,12 +28,12 @@ using namespace std;
 
 /////// Global variables ///////
 int totalNumberPackets = 0;
-int smallestPacketSize = INFINITY;
+int smallestPacketSize = (int)INFINITY;
 int biggestPacketSize = 0;
 int sumOfPacketSizes = 0;
 
-std::unordered_set <char*> sendingPorts;
-std::unordered_set <char*> receivingPorts;
+std::unordered_map<int, int> sendingPorts;
+std::unordered_map<int, int> receivingPorts;
 std::unordered_set <std::string> arpAddresses; //MAC or IP
 
 // /* 10Mb/s ethernet header */
@@ -267,6 +269,17 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
             //if the port was already in the map, add to its count
             printf("UDP header source port: %d\n", ntohs(udp_header->uh_sport));
             printf("UDP header destination port: %d\n", ntohs(udp_header->uh_dport));
+            if(!sendingPorts.count(ntohs(udp_header->uh_sport)) > 0) {
+                sendingPorts.insert(std::pair<int, int>(ntohs(udp_header->uh_sport), 1));
+            } else {
+                sendingPorts.find(ntohs(udp_header->uh_sport))->second++;
+            }
+
+            if(!sendingPorts.count(ntohs(udp_header->uh_dport)) > 0) {
+                sendingPorts.insert(std::pair<int, int>(ntohs(udp_header->uh_dport), 1));
+            } else {
+                sendingPorts.find(ntohs(udp_header->uh_dport))->second++;
+            }
         } else {
             printf("No UDP being carried!\n");
         }
