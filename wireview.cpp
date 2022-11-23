@@ -9,8 +9,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-#include <netinet/ether.h> // for linux
-//#include <netinet/if_ether.h> // for mac
+//#include <netinet/ether.h> // for linux
+#include <netinet/if_ether.h> // for mac
 
 #include <arpa/inet.h>
 #include <net/ethernet.h>
@@ -369,7 +369,7 @@ int main (int argc, char **argv) {
 
 
     printf("\nEthernet headers:\n");
-    printf("\nMACs: \n");
+    printf("MACs: \n");
     printf("    Sending MACs: \n");
     print_map_count(sendingMACs);
 
