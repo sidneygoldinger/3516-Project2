@@ -275,10 +275,10 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
                 sendingPorts.find(ntohs(udp_header->uh_sport))->second++;
             }
 
-            if(!sendingPorts.count(ntohs(udp_header->uh_dport)) > 0) {
-                sendingPorts.insert(std::pair<int, int>(ntohs(udp_header->uh_dport), 1));
+            if(!receivingPorts.count(ntohs(udp_header->uh_dport)) > 0) {
+                receivingPorts.insert(std::pair<int, int>(ntohs(udp_header->uh_dport), 1));
             } else {
-                sendingPorts.find(ntohs(udp_header->uh_dport))->second++;
+                receivingPorts.find(ntohs(udp_header->uh_dport))->second++;
             }
         } else {
             printf("No UDP being carried!\n");
@@ -378,12 +378,19 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     printf("\n");
 }
 
+template<typename K, typename V>
+void print_map(std::unordered_map<K, V> const &m)
+{
+    for (auto const &pair: m) {
+        std::cout << "{" << pair.first << ": " << pair.second << "}\n";
+    }
+}
 
 int main (int argc, char **argv) {
     // open the input file
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    pcap_t *openedFile = pcap_open_offline("project2-arp-storm.pcap", errbuf);
+    pcap_t *openedFile = pcap_open_offline("project2-dns.pcap", errbuf);
     if (openedFile == NULL) {
         printf("The file wasn't opened: %s\n", errbuf);
         return 1;
@@ -406,6 +413,11 @@ int main (int argc, char **argv) {
     for(std::string s : arpAddresses) {
         printf("%s\n", s.c_str());
     }
+
+    printf("Sending Ports: \n");
+    print_map(sendingPorts);
+    printf("Receiving Ports: \n");
+    print_map(receivingPorts);
     // close the input file
     pcap_close(openedFile);
 
