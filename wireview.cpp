@@ -9,8 +9,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-//#include <netinet/ether.h> // for linux
-#include <netinet/if_ether.h> // for mac
+#include <netinet/ether.h> // for linux
+//#include <netinet/if_ether.h> // for mac
 
 #include <arpa/inet.h>
 #include <net/ethernet.h>
@@ -347,7 +347,7 @@ int main (int argc, char **argv) {
     // open the input file
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    pcap_t *openedFile = pcap_open_offline("project2-arp-storm.pcap", errbuf);
+    pcap_t *openedFile = pcap_open_offline("project2-http.pcap", errbuf);
     if (openedFile == NULL) {
         printf("The file wasn't opened: %s\n", errbuf);
         return 1;
@@ -383,6 +383,7 @@ int main (int argc, char **argv) {
     printf("    Receiving IPs: \n");
     print_map_count(receivingIPs);
 
+    printf("\nUDP headers:\n");
     printf("    Sending Ports: \n");
     print_map_count(sendingPorts);
 
