@@ -9,8 +9,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-//#include <netinet/ether.h> // for linux
-#include <netinet/if_ether.h> // for mac
+#include <netinet/ether.h> // for linux
+//#include <netinet/if_ether.h> // for mac
 
 #include <arpa/inet.h>
 #include <net/ethernet.h>
@@ -347,7 +347,8 @@ int main (int argc, char **argv) {
     // open the input file
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    pcap_t *openedFile = pcap_open_offline("project2-other-network.pcap", errbuf);
+    pcap_t *openedFile = pcap_open_offline(argv[1], errbuf);
+    //pcap_t *openedFile = pcap_open_offline("project2-other-network.pcap", errbuf);
     if (openedFile == NULL) {
         printf("The file wasn't opened: %s\n", errbuf);
         return 1;
