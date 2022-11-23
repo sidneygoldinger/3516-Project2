@@ -39,6 +39,10 @@ int endingUsec = 0;
 
 std::unordered_map<int, int> sendingPorts;
 std::unordered_map<int, int> receivingPorts;
+std::unordered_map<std::string, int> sendingIPs;
+std::unordered_map<std::string, int> receivingIPs;
+std::unordered_map<std::string, int> sendingMACs;
+std::unordered_map<std::string, int> receivingMACs;
 std::unordered_set <std::string> arpAddresses; //MAC or IP
 
 // /* 10Mb/s ethernet header */
@@ -227,6 +231,17 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     //printf("ethernet header source: %s\n", ether_ntoa((const struct ether_addr *)&e_header->ether_shost));
     //printf("ethernet header destination: %s \n", ether_ntoa((const struct ether_addr *)&e_header->ether_dhost));
 
+    if(!sendingMACs.count(ether_ntoa((const struct ether_addr *)&e_header->ether_shost)) > 0) {
+        sendingMACs.insert(std::pair<std::string, int>(ether_ntoa((const struct ether_addr *)&e_header->ether_shost), 1));
+    } else {
+        sendingMACs.find(ether_ntoa((const struct ether_addr *)&e_header->ether_shost))->second ++;
+    }
+
+    if(!receivingMACs.count(ether_ntoa((const struct ether_addr *)&e_header->ether_dhost)) > 0) {
+        receivingMACs.insert(std::pair<std::string, int>(ether_ntoa((const struct ether_addr *)&e_header->ether_dhost), 1));
+    } else {
+        receivingMACs.find(ether_ntoa((const struct ether_addr *)&e_header->ether_dhost))->second ++;
+    }
 
     thing3 = thing3 + sizeof(*e_header);
     //printf("%ld\n", sizeof(*e_header));
@@ -260,6 +275,17 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
         //if the ip address was already in the map, add to its count
         //printf("IP header source: %s\n", inet_ntoa((struct in_addr)ip_header->ip_src));
         //printf("IP header destination: %s\n", inet_ntoa((struct in_addr)ip_header->ip_dst));
+        if(!sendingIPs.count(inet_ntoa((struct in_addr)ip_header->ip_src)) > 0) {
+        sendingIPs.insert(std::pair<std::string, int>(inet_ntoa((struct in_addr)ip_header->ip_src), 1));
+        } else {
+            sendingIPs.find(inet_ntoa((struct in_addr)ip_header->ip_src))->second ++;
+        }
+
+        if(!receivingIPs.count(inet_ntoa((struct in_addr)ip_header->ip_dst)) > 0) {
+            receivingIPs.insert(std::pair<std::string, int>(inet_ntoa((struct in_addr)ip_header->ip_dst), 1));
+        } else {
+            receivingIPs.find(inet_ntoa((struct in_addr)ip_header->ip_dst))->second ++;
+        }
         u_char upperProtocolNum = ip_header->ip_p;
         //printf("UDP or not (should be 17 for UDP): %d\n", upperProtocolNum);
 
@@ -287,10 +313,10 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
                 sendingPorts.find(ntohs(udp_header->uh_sport))->second++;
             }
 
-            if(!sendingPorts.count(ntohs(udp_header->uh_dport)) > 0) {
-                sendingPorts.insert(std::pair<int, int>(ntohs(udp_header->uh_dport), 1));
+            if(!receivingPorts.count(ntohs(udp_header->uh_dport)) > 0) {
+                receivingPorts.insert(std::pair<int, int>(ntohs(udp_header->uh_dport), 1));
             } else {
-                sendingPorts.find(ntohs(udp_header->uh_dport))->second++;
+                receivingPorts.find(ntohs(udp_header->uh_dport))->second++;
             }
         } else {
             printf("No UDP being carried!\n");
@@ -350,7 +376,26 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
         std::string targetMAC(ether_ntoa((const struct ether_addr *)&arp_body->arp_tha));
         arpAddresses.insert(senderMAC);
         arpAddresses.insert(targetMAC);
+        //ip or mac participating in ARP -> number of times it has been seen
+        //ip1 -> 2
+        //ip2 -> 2
+        //mac1 -> 2
+        //mac2 -> 2
+        //mac3 -> 3
+
+        //OR
+
+        //just a list of unique senders (no mapping, more like a hashset) I'm thinking this one (currently implemented)
     }
+
+
+
+
+    // for(int i = 0; i < ETH_ALEN; i ++) {
+    //     hostDestinationAddr[i] = ntohs(e_header->ether_dhost[i]);
+    //     printf("%d ", ntohs(e_header->ether_dhost[i]));
+    // }
+    // printf("destination ethernet address: %s\n", (char*)hostDestinationAddr);
 
     // do unique senders things
 
@@ -371,12 +416,19 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     printf("\n");
 }
 
+template<typename K, typename V>
+void print_map(std::unordered_map<K, V> const &m)
+{
+    for (auto const &pair: m) {
+        std::cout << "{" << pair.first << ": " << pair.second << "}\n";
+    }
+}
 
 int main (int argc, char **argv) {
     // open the input file
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    pcap_t *openedFile = pcap_open_offline("project2-arp-storm.pcap", errbuf);
+    pcap_t *openedFile = pcap_open_offline("project2-dns.pcap", errbuf);
     if (openedFile == NULL) {
         printf("The file wasn't opened: %s\n", errbuf);
         return 1;
@@ -399,6 +451,24 @@ int main (int argc, char **argv) {
     for(std::string s : arpAddresses) {
         //printf("%s\n", s.c_str());
     }
+
+    printf("Sending Ports: \n");
+    print_map(sendingPorts);
+
+    printf("Receiving Ports: \n");
+    print_map(receivingPorts);
+
+    printf("Sending IPs: \n");
+    print_map(sendingIPs);
+
+    printf("Receiving IPs: \n");
+    print_map(receivingIPs);
+
+    printf("Sending MACs: \n");
+    print_map(sendingMACs);
+
+    printf("Receving MACs: \n");
+    print_map(receivingMACs);
     // close the input file
     pcap_close(openedFile);
 
