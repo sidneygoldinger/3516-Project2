@@ -244,28 +244,6 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     }
 
     thing3 = thing3 + sizeof(*e_header);
-    //printf("%ld\n", sizeof(*e_header));
-
-    //     struct ip {
-    // #if BYTE_ORDER == LITTLE_ENDIAN
-    //     u_char  ip_hl:4,        /* header length */
-    //         ip_v:4;         /* version */
-    // #endif
-    // #if BYTE_ORDER == BIG_ENDIAN
-    //     u_char  ip_v:4,         /* version */
-    //         ip_hl:4;        /* header length */
-    // #endif
-    //     u_char  ip_tos;         /* type of service */
-    //     short   ip_len;         /* total length */
-    //     u_short ip_id;          /* identification */
-    //     short   ip_off;         /* fragment offset field */
-    // #define IP_DF 0x4000            /* dont fragment flag */
-    // #define IP_MF 0x2000            /* more fragments flag */
-    //     u_char  ip_ttl;         /* time to live */
-    //     u_char  ip_p;           /* protocol */
-    //     u_short ip_sum;         /* checksum */
-    //     struct  in_addr ip_src,ip_dst;  /* source and dest address */
-    // };
 
     struct ip* ip_header = ((struct ip*) thing3);
     if(e_type == 2048) {
@@ -287,18 +265,9 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
             receivingIPs.find(inet_ntoa((struct in_addr)ip_header->ip_dst))->second ++;
         }
         u_char upperProtocolNum = ip_header->ip_p;
-        //printf("UDP or not (should be 17 for UDP): %d\n", upperProtocolNum);
 
-        //only check for UDP if there is an IP header?????????
 
-        //if UDP is carried
-        //struct udphdr
-        // {
-        // u_int16_t uh_sport;                /* source port */
-        // u_int16_t uh_dport;                /* destination port */
-        // u_int16_t uh_ulen;                /* udp length */
-        // u_int16_t uh_sum;                /* udp checksum */
-        // };
+
         if(upperProtocolNum == 17) {
             thing3 = thing3 + sizeof(*ip_header);
             struct udphdr* udp_header = ((struct udphdr*) thing3);
@@ -322,32 +291,6 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
             printf("No UDP being carried!\n");
         }
     } else if(e_type == 2054) {
-        //arp packets never have UDP or TCP?????????
-        //Might make sense because TCP and UDP are for inter-network stuffs and ARP only operates on data link layer
-        //printf("packet is ARP\n");
-        //arphdr fields
-        // uint16_t ar_hrd;	Format of hardware address
-        // uint16_t ar_pro;	Format of protocol address
-        // uint8_t ar_hln;	Length of hardware address
-        // uint8_t ar_pln;	Length of protocol address
-        // uint16_t ar_op;	ARP opcode (command)
-
-        //ether_arp fields
-        // struct arphdr ea_hdr;	fixed-size header
-        // uint8_t arp_sha[6];	sender hardware address
-        // uint32_t arp_spa;	sender protocol address
-        // uint8_t arp_tha[6];	target hardware address
-        // uint32_t arp_tpa;	target protocol address
-
-        //ether_arp might look like this instead?????
-        // struct  ether_arp {
-        // struct  arphdr ea_hdr;          /* fixed-size header */
-        // u_int8_t arp_sha[ETH_ALEN];     /* sender hardware address */
-        // u_int8_t arp_spa[4];            /* sender protocol address */
-        // u_int8_t arp_tha[ETH_ALEN];     /* target hardware address */
-        // u_int8_t arp_tpa[4];            /* target protocol address */
-        // };
-
         struct arphdr* arp_header = ((struct arphdr*) thing3);
         uint16_t protocolType = ntohs(arp_header->ar_pro);
         printf("Protocol type: %d\n", protocolType);
@@ -389,38 +332,13 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     }
 
 
-
-
-    // for(int i = 0; i < ETH_ALEN; i ++) {
-    //     hostDestinationAddr[i] = ntohs(e_header->ether_dhost[i]);
-    //     printf("%d ", ntohs(e_header->ether_dhost[i]));
-    // }
-    // printf("destination ethernet address: %s\n", (char*)hostDestinationAddr);
-
-    // do unique senders things
-
-    // do unique recipients things
-
-    // do unique machines list things
-    //      and include associated MAC addresses
-    //      and IP addr's if possible(?)
-
-    // do unique source ports things
-
-    // do unique destination ports things
-
-    // get packet size
-    // record min so far and max so far, and sum for
-    //      ultimate average
-    printf("\n");
-    printf("\n");
 }
 
 template<typename K, typename V>
 void print_map(std::unordered_map<K, V> const &m)
 {
     for (auto const &pair: m) {
-        std::cout << "{" << pair.first << ": " << pair.second << "}\n";
+        std::cout << "{" << pair.first << " with count " << pair.second << "}\n";
     }
 }
 
@@ -452,22 +370,25 @@ int main (int argc, char **argv) {
         //printf("%s\n", s.c_str());
     }
 
-    printf("Sending Ports: \n");
+    printf("\nEthernet headers:\n");
+    printf("    Sending Ports: \n");
     print_map(sendingPorts);
 
-    printf("Receiving Ports: \n");
+    printf("    Receiving Ports: \n");
     print_map(receivingPorts);
 
-    printf("Sending IPs: \n");
+    printf("\nIP headers:\n");
+    printf("    Sending IPs: \n");
     print_map(sendingIPs);
 
-    printf("Receiving IPs: \n");
+    printf("    Receiving IPs: \n");
     print_map(receivingIPs);
 
-    printf("Sending MACs: \n");
+    printf("\nMACs: \n");
+    printf("    Sending MACs: \n");
     print_map(sendingMACs);
 
-    printf("Receving MACs: \n");
+    printf("    Receving MACs: \n");
     print_map(receivingMACs);
     // close the input file
     pcap_close(openedFile);
@@ -483,7 +404,7 @@ int main (int argc, char **argv) {
         totalUsec = totalUsec + 1000000;
     }
 
-    printf("This took %d seconds and %d microseconds\n", totalSec, totalUsec);
+    printf("\nThis took %d seconds and %d microseconds\n", totalSec, totalUsec);
 
     // print total number of packets:
     printf("There are %d total packets\n", totalNumberPackets);
