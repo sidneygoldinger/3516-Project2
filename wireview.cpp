@@ -9,8 +9,8 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 
-//#include <netinet/ether.h> // for linux
-#include <netinet/if_ether.h> // for mac
+#include <netinet/ether.h> // for linux
+//#include <netinet/if_ether.h> // for mac
 
 #include <arpa/inet.h>
 #include <net/ethernet.h>
