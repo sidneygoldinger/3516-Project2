@@ -43,7 +43,7 @@ std::unordered_map<std::string, int> sendingIPs;
 std::unordered_map<std::string, int> receivingIPs;
 std::unordered_map<std::string, int> sendingMACs;
 std::unordered_map<std::string, int> receivingMACs;
-std::unordered_set <std::string> arpAddresses; //MAC or IP
+std::unordered_map<std::string, std::string> arpAddresses; //MAC or IP
 
 // /* 10Mb/s ethernet header */
 // struct ether_header
@@ -232,15 +232,15 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     //printf("ethernet header destination: %s \n", ether_ntoa((const struct ether_addr *)&e_header->ether_dhost));
 
     if(!sendingMACs.count(ether_ntoa((const struct ether_addr *)&e_header->ether_shost)) > 0) {
-        sendingMACs.insert(std::pair<std::string, int>(ether_ntoa((const struct ether_addr *)&e_header->ether_shost), 1));
+        sendingMACs.insert(std::pair<std::string, int>(std::string(ether_ntoa((const struct ether_addr *)&e_header->ether_shost)), 1));
     } else {
-        sendingMACs.find(ether_ntoa((const struct ether_addr *)&e_header->ether_shost))->second ++;
+        sendingMACs.find(std::string(ether_ntoa((const struct ether_addr *)&e_header->ether_shost)))->second ++;
     }
 
     if(!receivingMACs.count(ether_ntoa((const struct ether_addr *)&e_header->ether_dhost)) > 0) {
-        receivingMACs.insert(std::pair<std::string, int>(ether_ntoa((const struct ether_addr *)&e_header->ether_dhost), 1));
+        receivingMACs.insert(std::pair<std::string, int>(std::string(ether_ntoa((const struct ether_addr *)&e_header->ether_dhost)), 1));
     } else {
-        receivingMACs.find(ether_ntoa((const struct ether_addr *)&e_header->ether_dhost))->second ++;
+        receivingMACs.find(std::string(ether_ntoa((const struct ether_addr *)&e_header->ether_dhost)))->second ++;
     }
 
     thing3 = thing3 + sizeof(*e_header);
@@ -294,6 +294,18 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
         struct arphdr* arp_header = ((struct arphdr*) thing3);
         uint16_t protocolType = ntohs(arp_header->ar_pro);
         printf("Protocol type: %d\n", protocolType);
+
+
+        struct ether_arp* arp_body = ((struct ether_arp*) thing3);
+        //add these to the same hashset (only keep track of unique senders and targets/"machines participating in ARP")
+        //printf("Sender MAC address: %s\n", ether_ntoa((const struct ether_addr *)&arp_body->arp_sha));
+        //printf("Target MAC address: %s\n", ether_ntoa((const struct ether_addr *)&arp_body->arp_tha));
+        std::string senderMAC(ether_ntoa((const struct ether_addr *)&arp_body->arp_sha));
+        std::string targetMAC(ether_ntoa((const struct ether_addr *)&arp_body->arp_tha));
+        //std::string blank(" ");
+        arpAddresses.insert(std::pair<std::string, std::string>(senderMAC, ""));
+        arpAddresses.insert(std::pair<std::string, std::string>(targetMAC, ""));
+
         if(protocolType == 2048) {
             //print out IP address stuff
             struct ether_arp* arp_body = ((struct ether_arp*) thing3);
@@ -306,19 +318,9 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
             std::string targetIP = std::to_string(arp_body->arp_tpa[0]) + "." + std::to_string(arp_body->arp_tpa[1]) + "." +
                                    std::to_string(arp_body->arp_tpa[2]) + "." + std::to_string(arp_body->arp_tpa[3]);
 
-            arpAddresses.insert(senderIP);
-            arpAddresses.insert(targetIP);
+            arpAddresses.find(senderMAC)->second = senderIP;
+            arpAddresses.find(targetMAC)->second = targetIP;
         }
-
-
-        struct ether_arp* arp_body = ((struct ether_arp*) thing3);
-        //add these to the same hashset (only keep track of unique senders and targets/"machines participating in ARP")
-        //printf("Sender MAC address: %s\n", ether_ntoa((const struct ether_addr *)&arp_body->arp_sha));
-        //printf("Target MAC address: %s\n", ether_ntoa((const struct ether_addr *)&arp_body->arp_tha));
-        std::string senderMAC(ether_ntoa((const struct ether_addr *)&arp_body->arp_sha));
-        std::string targetMAC(ether_ntoa((const struct ether_addr *)&arp_body->arp_tha));
-        arpAddresses.insert(senderMAC);
-        arpAddresses.insert(targetMAC);
         //ip or mac participating in ARP -> number of times it has been seen
         //ip1 -> 2
         //ip2 -> 2
@@ -347,7 +349,7 @@ int main (int argc, char **argv) {
     // open the input file
     char errbuf[PCAP_ERRBUF_SIZE];
 
-    pcap_t *openedFile = pcap_open_offline("project2-dns.pcap", errbuf);
+    pcap_t *openedFile = pcap_open_offline("project2-arp-storm.pcap", errbuf);
     if (openedFile == NULL) {
         printf("The file wasn't opened: %s\n", errbuf);
         return 1;
@@ -367,16 +369,14 @@ int main (int argc, char **argv) {
     memset(&totalNumberPackets, 0, sizeof(totalNumberPackets));
     pcap_loop(openedFile,-1,callback,NULL); // change second input to -1
 
-    for(std::string s : arpAddresses) {
-        //printf("%s\n", s.c_str());
-    }
 
     printf("\nEthernet headers:\n");
-    printf("    Sending Ports: \n");
-    print_map(sendingPorts);
+    printf("\nMACs: \n");
+    printf("    Sending MACs: \n");
+    print_map(sendingMACs);
 
-    printf("    Receiving Ports: \n");
-    print_map(receivingPorts);
+    printf("    Receving MACs: \n");
+    print_map(receivingMACs);
 
     printf("\nIP headers:\n");
     printf("    Sending IPs: \n");
@@ -385,12 +385,17 @@ int main (int argc, char **argv) {
     printf("    Receiving IPs: \n");
     print_map(receivingIPs);
 
-    printf("\nMACs: \n");
-    printf("    Sending MACs: \n");
-    print_map(sendingMACs);
+    printf("    Sending Ports: \n");
+    print_map(sendingPorts);
 
-    printf("    Receving MACs: \n");
-    print_map(receivingMACs);
+    printf("    Receiving Ports: \n");
+    print_map(receivingPorts);
+
+
+
+    printf("\nARP headers:\n");
+    print_map(arpAddresses);
+
     // close the input file
     pcap_close(openedFile);
 
