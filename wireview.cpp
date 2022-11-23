@@ -1,5 +1,5 @@
 //
-// Created by Sidney Goldinger on 11/11/22.
+// Created by Sidney Goldinger and Connor Ehrensperger on 11/11/22.
 //
 /////// Imports ///////
 #include <stdio.h>
@@ -223,7 +223,6 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
     //2048 -> IPv4
     //2054 -> ARP
     u_int16_t e_type = ntohs(e_header->ether_type);
-    //printf("IP or ARP: %d\n", e_type);
 
     //add these to two separate maps ex. ethernetSenders and ethernetRecipients
     //the maps will map hex-colon addresses to counts(# of times that the address has sent/received)
@@ -294,7 +293,6 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
         //printf("Target MAC address: %s\n", ether_ntoa((const struct ether_addr *)&arp_body->arp_tha));
         std::string senderMAC(ether_ntoa((const struct ether_addr *)&arp_body->arp_sha));
         std::string targetMAC(ether_ntoa((const struct ether_addr *)&arp_body->arp_tha));
-        //std::string blank(" ");
         arpAddresses.insert(std::pair<std::string, std::string>(senderMAC, ""));
         arpAddresses.insert(std::pair<std::string, std::string>(targetMAC, ""));
 
@@ -313,16 +311,6 @@ void callback(u_char *thing1, const struct pcap_pkthdr *thing2, const u_char *th
             arpAddresses.find(senderMAC)->second = senderIP;
             arpAddresses.find(targetMAC)->second = targetIP;
         }
-        //ip or mac participating in ARP -> number of times it has been seen
-        //ip1 -> 2
-        //ip2 -> 2
-        //mac1 -> 2
-        //mac2 -> 2
-        //mac3 -> 3
-
-        //OR
-
-        //just a list of unique senders (no mapping, more like a hashset) I'm thinking this one (currently implemented)
     }
 
 
@@ -348,20 +336,15 @@ int main (int argc, char **argv) {
     char errbuf[PCAP_ERRBUF_SIZE];
 
     pcap_t *openedFile = pcap_open_offline(argv[1], errbuf);
-    //pcap_t *openedFile = pcap_open_offline("project2-other-network.pcap", errbuf);
     if (openedFile == NULL) {
         printf("The file wasn't opened: %s\n", errbuf);
         return 1;
     }
 
-    // check data was captured using ethernet?
+    // check data was captured using ethernet
     int wasItEthernet = pcap_datalink(openedFile);
     if (wasItEthernet != 1) {
-        //printf("The file wasn't ethernet? Returned: %d\n", wasItEthernet);
         return 1;
-    }
-    else {
-        //printf("The file was ethernet! Yay!\n");
     }
 
     // loop through the input file
